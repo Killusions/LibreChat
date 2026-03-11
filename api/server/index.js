@@ -80,6 +80,18 @@ const startServer = async () => {
     }
   }
 
+  // Custom theme CSS: inject a <link> tag if a custom theme.css file exists
+  const customThemePath = appConfig.paths.customTheme;
+  const customThemeCssPath = path.join(customThemePath, 'theme.css');
+  const hasCustomTheme = fs.existsSync(customThemeCssPath);
+  if (hasCustomTheme) {
+    logger.info(`Custom theme CSS found at ${customThemeCssPath}`);
+    indexHTML = indexHTML.replace(
+      '</head>',
+      '    <link rel="stylesheet" href="/custom/theme.css">\n  </head>',
+    );
+  }
+
   app.get('/health', (_req, res) => res.status(200).send('OK'));
 
   /* Middleware */
@@ -114,6 +126,10 @@ const startServer = async () => {
   app.use(staticCache(appConfig.paths.dist));
   app.use(staticCache(appConfig.paths.fonts));
   app.use(staticCache(appConfig.paths.assets));
+
+  if (hasCustomTheme) {
+    app.use('/custom', staticCache(customThemePath, { noCache: true, skipGzipScan: true }));
+  }
 
   if (!ALLOW_SOCIAL_LOGIN) {
     console.warn('Social logins are disabled. Set ALLOW_SOCIAL_LOGIN=true to enable them.');
